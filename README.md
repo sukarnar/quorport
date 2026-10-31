@@ -107,6 +107,56 @@ pip install ".[postgres,mysql,mssql,oracle,gui,reports]"
 
 ---
 
+## Credentials
+
+Credentials are stored encrypted (AES-256-GCM) — never in `quorport.yaml`, never in logs.
+
+### Project credentials (per-project)
+
+```powershell
+quorport cred init                          # create the master key once
+quorport cred add hr_db -t database -f driver=postgresql+psycopg -f host=dbhost -f database=hr -f username=hr_api
+quorport cred list
+quorport cred test hr_db
+quorport cred rotate hr_db                  # change password, live servers pick it up within minutes
+quorport cred remove old_login
+```
+
+### Global credentials (shared across all projects)
+
+Global credentials live in `~/.quorport/credentials.vault` and are available to every project on this machine. A same-named project credential always takes priority.
+
+```powershell
+quorport cred add shared_dw -t database --global    # store in global vault
+quorport cred list --global                         # list global credentials
+quorport cred promote hr_db                         # move project credential to global vault
+quorport cred remove shared_dw --global             # remove from global vault
+```
+
+### Deploying to production safely
+
+**Config travels, credentials don't.** `quorport.yaml` contains only credential names — no secrets. Commit and deploy the YAML freely; provision credentials separately on each server.
+
+```gitignore
+# .gitignore
+.quorport/
+.env
+*.vault
+```
+
+For CI/CD pipelines, use `${ENV:VAR}` references instead of the vault:
+
+```yaml
+sources:
+  hr:
+    type: sql
+    url: "postgresql+psycopg://${ENV:HR_DB_USER}:${ENV:HR_DB_PASS}@${ENV:HR_DB_HOST}/hr"
+```
+
+For enterprise environments, configure HashiCorp Vault as the provider in `quorport.yaml` and manage secrets there.
+
+---
+
 ## Reports & Templates
 
 Reports pull data from a configured endpoint or source and render it through a Jinja2 HTML template.
