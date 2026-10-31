@@ -455,14 +455,13 @@ def cred_add(
     description: str = "",
     vars_file: Optional[Path] = typer.Option(None, "--vars", help="Variables file: credentials.<name>.<field> "
                                                                   "values override --field (replay scripts)."),
+    global_vault: bool = typer.Option(False, "--global", help="Store in the global vault (~/.quorport/credentials.vault) shared across all projects."),
     config: str = CONFIG_OPT,
 ):
     """Store a credential. Secret fields are prompted with hidden input."""
     if type not in TYPES:
         raise typer.BadParameter(f"type must be one of {', '.join(TYPES)}")
     s = _svc(config)
-    if any(c["name"] == name for c in _run(s.credentials.list)):
-        _fail(Exception(f"credential '{name}' exists – use 'quorport cred rotate'"))
     if vars_file:
         from .services.migration import apply_vars
         over, _ = apply_vars("credential", name, {"fields": _kv(field)}, _run(_load_vars, vars_file))
@@ -470,23 +469,42 @@ def cred_add(
     fields = _collect_fields(type, field, secret_from_env)
     for k in secret:
         fields[k] = typer.prompt(k, hide_input=True, confirmation_prompt=True)
-    where = _run(s.credentials.add, name, type, fields, secret_fields=secret, expires_days=expires_days,
-                 provider=provider, description=description)
-    _ok(f"Credential '{name}' ({type}) stored in {where}")
+    if global_vault:
+        where = _run(s.credentials.add_global, name, type, fields, secret_fields=secret,
+                     expires_days=expires_days, description=description)
+        _ok(f"Credential '{name}' ({type}) stored in global vault")
+    else:
+        if any(c["name"] == name for c in _run(s.credentials.list)):
+            _fail(Exception(f"credential '{name}' exists – use 'quorport cred rotate'"))
+        where = _run(s.credentials.add, name, type, fields, secret_fields=secret, expires_days=expires_days,
+                     provider=provider, description=description)
+        _ok(f"Credential '{name}' ({type}) stored in {where}")
     typer.echo(f"Use it:  quorport source add <name> --type ... --credential {name}   "
                f"or  ${{CRED:{name}.<field>}}")
 
 
 @cred_app.command("list")
-def cred_list(config: str = CONFIG_OPT):
+def cred_list(
+    global_vault: bool = typer.Option(False, "--global", help="List global vault credentials instead."),
+    config: str = CONFIG_OPT,
+):
     """List credentials (metadata only – never secrets)."""
-    creds = _run(_svc(config).credentials.list)
-    if not creds:
-        typer.echo("No credentials yet. Add one with 'quorport cred add'.")
-    for c in creds:
-        state = {"expired": "EXPIRED", "never": ""}.get(c["expiry_state"], f"expires in {c['days_left']}d")
-        typer.echo(f"{c['name']:<20} {c['type']:<9} {c['provider']:<9} {state:<16} "
-                   f"fields={','.join(c['fields'])}  used-by={','.join(c['used_by']) or '-'}")
+    s = _svc(config)
+    if global_vault:
+        creds = _run(s.credentials.list_global)
+        if not creds:
+            typer.echo("No global credentials yet. Add one with 'quorport cred add --global'.")
+        for c in creds:
+            state = {"expired": "EXPIRED", "never": ""}.get(c["expiry_state"], f"expires in {c['days_left']}d")
+            typer.echo(f"{c['name']:<20} {c['type']:<9} global-vault {state:<16} fields={','.join(c['fields'])}")
+    else:
+        creds = _run(s.credentials.list)
+        if not creds:
+            typer.echo("No credentials yet. Add one with 'quorport cred add'.")
+        for c in creds:
+            state = {"expired": "EXPIRED", "never": ""}.get(c["expiry_state"], f"expires in {c['days_left']}d")
+            typer.echo(f"{c['name']:<20} {c['type']:<9} {c['provider']:<9} {state:<16} "
+                       f"fields={','.join(c['fields'])}  used-by={','.join(c['used_by']) or '-'}")
 
 
 @cred_app.command("show")
@@ -523,10 +541,27 @@ def cred_rotate(name: str,
 
 
 @cred_app.command("remove")
-def cred_remove(name: str, force: bool = typer.Option(False, "--force"), config: str = CONFIG_OPT):
+def cred_remove(
+    name: str,
+    force: bool = typer.Option(False, "--force"),
+    global_vault: bool = typer.Option(False, "--global", help="Remove from the global vault."),
+    config: str = CONFIG_OPT,
+):
     """Delete a credential (refuses while sources still use it, unless --force)."""
-    _run(_svc(config).credentials.remove, name, force)
-    _ok(f"Credential '{name}' removed")
+    s = _svc(config)
+    if global_vault:
+        _run(s.credentials.remove_global, name)
+        _ok(f"Global credential '{name}' removed")
+    else:
+        _run(s.credentials.remove, name, force)
+        _ok(f"Credential '{name}' removed")
+
+
+@cred_app.command("promote")
+def cred_promote(name: str, config: str = CONFIG_OPT):
+    """Move a project credential to the global vault so all projects can use it."""
+    _run(_svc(config).credentials.promote_to_global, name)
+    _ok(f"Credential '{name}' moved to global vault (~/.quorport/credentials.vault)")
 
 
 @cred_app.command("test")

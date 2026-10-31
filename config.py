@@ -282,6 +282,10 @@ class CredentialSettings(BaseModel):
     cache_ttl_seconds: int = 300
     keyring_service: str = "restforge"     # kept: existing keyring entries live under this service
     hashicorp: HashiCorpVaultSettings = Field(default_factory=HashiCorpVaultSettings)
+    # Global (cross-project) vault — consulted after the project vault so project creds win
+    use_global_vault: bool = True
+    global_vault_path: str = "~/.quorport/credentials.vault"
+    global_master_key_env: str = "QUORPORT_GLOBAL_KEY"  # falls back to master_key_env when unset
 
 
 class SecuritySettings(BaseModel):
