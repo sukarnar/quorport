@@ -116,7 +116,7 @@ class ReportService:
         from ..services.project import ServiceError
         from ..services.runtime import RuntimeService
 
-        merged_params = {**(spec.params or {}), **extra_params}
+        merged_params = {**(spec.from_.params or {}), **extra_params}
 
         if spec.from_.endpoint:
             rt = RuntimeService(self._p)

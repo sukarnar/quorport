@@ -25,6 +25,7 @@ from .views.endpoints import EndpointsView
 from .views.help import HelpView
 from .views.loads import LoadsView
 from .views.sources import SourcesView
+from .views.reports import ReportsView
 
 SCREENS = [  # key, label, icon, view class
     ("dashboard", "Dashboard", ft.Icons.DASHBOARD, DashboardView),
@@ -32,6 +33,7 @@ SCREENS = [  # key, label, icon, view class
     ("credentials", "Credentials", ft.Icons.LOCK, CredentialsView),
     ("endpoints", "Endpoints", ft.Icons.API, EndpointsView),
     ("loads", "Loads", ft.Icons.MOVE_DOWN, LoadsView),
+    ("reports", "Reports", ft.Icons.DESCRIPTION, ReportsView),
     ("access", "API keys", ft.Icons.BADGE, AccessView),
     ("activity", "Activity", ft.Icons.HISTORY, ActivityView),
     ("help", "Help", ft.Icons.HELP_OUTLINE, HelpView),
