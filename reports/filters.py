@@ -123,13 +123,17 @@ def avg_filter(rows: list[dict], column: str) -> float | str:
     return sum(vals) / len(vals)
 
 
-def groupby_filter(rows: list[dict], column: str) -> dict[Any, list[dict]]:
+def groupby_filter(rows: list[dict], column: str) -> list[tuple]:
     """Group rows by a column value: {% for key, group in rows | groupby_col('dept') %}."""
     groups: dict[Any, list[dict]] = {}
+    order: list = []
     for row in rows:
         key = row.get(column)
-        groups.setdefault(key, []).append(row)
-    return groups
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(row)
+    return [(key, groups[key]) for key in order]
 
 
 ALL_FILTERS = {

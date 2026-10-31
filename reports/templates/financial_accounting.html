@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>{{ report_title | default_if_none(report_name) }}</title>
+<title>{{ report_name }}</title>
 <style>
   body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #222; margin: 14mm 18mm; }
 
@@ -86,7 +86,7 @@
 <!-- ================================================================ header -->
 <div class="report-header">
   <div class="company-name">{{ vars.company_name | default_if_none('Your Company') }}</div>
-  <div class="report-title">{{ report_title | default_if_none('Financial Accounting Report') }}</div>
+  <div class="report-title">{{ report_name }}</div>
   <div class="report-meta">
     Period: {{ vars.period_start | default_if_none('') }}{% if vars.period_end %} to {{ vars.period_end }}{% endif %}
     &nbsp;&bull;&nbsp;
@@ -165,7 +165,7 @@
         </td>
       {% endif %}
       {% if 'balance' in row %}
-        {% set bal = row.balance | default_if_none(0) %}
+        {% set bal = row.balance | default_if_none(0) | float %}
         <td class="num {% if bal < 0 %}negative{% endif %}">{{ bal | currency }}</td>
       {% endif %}
     </tr>
@@ -175,12 +175,12 @@
     <tr class="section-total">
       {% set col_count = data[0].keys() | list | length %}
       <td colspan="{{ col_count - (2 if 'debit' in data[0] and 'credit' in data[0] else 1) - (1 if 'balance' in data[0] else 0) }}">
-        {{ category | default_if_none('Total') | replace('_',' ') | title }} — Subtotal
+        {{ category | default_if_none('Total') | replace('_',' ') | title }} â€” Subtotal
       </td>
       {% if 'debit'  in data[0] %}<td class="num debit">{{ cat_rows | sum_col('debit')  | currency }}</td>{% endif %}
       {% if 'credit' in data[0] %}<td class="num credit">{{ cat_rows | sum_col('credit') | currency }}</td>{% endif %}
       {% if 'balance' in data[0] %}
-        {% set cat_bal = cat_rows | sum_col('balance') %}
+        {% set cat_bal = cat_rows | sum_col('balance') | float %}
         <td class="num {% if cat_bal < 0 %}negative{% endif %}">{{ cat_bal | currency }}</td>
       {% endif %}
     </tr>
@@ -215,9 +215,10 @@
 
 <!-- ================================================================ footer -->
 <div class="footer">
-  <span>{{ vars.company_name | default_if_none('') }} &bull; {{ report_title | default_if_none(report_name) }}</span>
+  <span>{{ vars.company_name | default_if_none('') }} &bull; {{ report_name }}</span>
   <span>{{ generated_at | strftime('%Y-%m-%d %H:%M UTC') }}</span>
 </div>
 
 </body>
 </html>
+

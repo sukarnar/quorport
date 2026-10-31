@@ -70,6 +70,7 @@ def render_html(
     rows: list[dict] = data if isinstance(data, list) else [data] if isinstance(data, dict) else []
     record: dict = rows[0] if rows and len(rows) == 1 else {}
 
+    ev = extra_vars or {}
     ctx: dict[str, Any] = {
         "data": rows,
         "rows": rows,           # alias
@@ -78,7 +79,8 @@ def render_html(
         "report_name": report_name,
         "generated_at": now,
         "now": now,
-        **(extra_vars or {}),
+        "vars": ev,             # accessible as vars.key or vars['key'] in templates
+        **ev,                   # also flat: {{ company_name }} works too
     }
 
     try:

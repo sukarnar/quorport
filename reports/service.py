@@ -75,12 +75,13 @@ class ReportService:
 
         # Render HTML template ---------------------------------------------
         from .engine import render_html, _resolve_output_path
+        merged_vars = {**(getattr(spec, "vars", None) or {}), **(extra_vars or {})}
         html = render_html(
             spec.template,
             rows,
             project_root=self._p.root,
             report_name=name,
-            extra_vars=extra_vars,
+            extra_vars=merged_vars or None,
         )
 
         # Resolve output path (may contain Jinja2 expressions) -------------

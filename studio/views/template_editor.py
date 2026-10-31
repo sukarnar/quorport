@@ -406,11 +406,20 @@ class TemplateEditorView:
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(self._editor.value or "", encoding="utf-8")
 
+            # Load vars from the report spec if available
+            preview_vars: dict = {}
+            try:
+                spec = self.ctx.svc.reports.get(self.report_name)
+                preview_vars = dict(getattr(spec, "vars", None) or {})
+            except Exception:
+                pass
+
             html = render_html(
                 self.template_path,
                 _sample_data(),
                 project_root=self.ctx.svc.project.root,
                 report_name=self.report_name,
+                extra_vars=preview_vars or None,
             )
             # Write to temp file (for browser open)
             if self._preview_tmp:
